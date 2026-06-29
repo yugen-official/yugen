@@ -3,39 +3,576 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Yugen - Coming Soon</title>
+    <title>YUGEN | From Line to Object</title>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+    <script src="https://unpkg.com/lenis@1.1.13/dist/lenis.min.js"></script>
+
     <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background-color: #121214;
-            color: #eaeaea;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
+        @import url('https://fonts.googleapis.com/css2?family=Bodoni+Moda:wght@400;600&family=Inter:wght@300;400;500;600&display=swap');
+
+        :root {
+            --bg: #F8F6F2;         /* Premium Ivory */
+            --ink: #1D1D1F;        /* Deep Graphite */
+            --accent: #C8A96A;     /* Muted Champagne Gold */
+            --white: #FFFFFF;
+            --error: #df4747;
         }
-        .container {
-            text-align: center;
-            border: 1px solid #2a2a30;
-            padding: 3rem;
-            border-radius: 12px;
-            background: #1a1a1e;
+
+        /* 1. RESET & SYSTEM BASES */
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-font-smoothing: antialiased; }
+        html, body { background: var(--bg); color: var(--ink); width: 100%; min-height: 100%; }
+        body { font-family: 'Inter', sans-serif; overflow-x: hidden; }
+
+        /* 2. PERSISTENT CINEMATIC BACKGROUND BLOBS */
+        #visual-reveal {
+            position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden;
+            background: linear-gradient(135deg, #f8f6f2, #f2efe9, #f8f6f2);
         }
-        h1 {
-            color: #007aff;
-            font-size: 2.5rem;
-            margin-bottom: 0.5rem;
+        .hero-blob {
+            position: absolute; width: 60vw; height: 60vw; border-radius: 50%;
+            filter: blur(80px); opacity: 0; transform: scale(0.8);
+            transition: 1.5s cubic-bezier(0.16, 1, 0.3, 1);
         }
-        p {
-            color: #a0a0a5;
+        #blob1 { top: -10%; left: -10%; background: rgba(200, 169, 106, 0.25); opacity: 0.5; }
+        #blob2 { top: 20%; right: -10%; background: rgba(255, 255, 255, 0.8); }
+        #blob3 { bottom: -15%; left: 30%; background: rgba(29, 29, 31, 0.05); }
+        .hero-blob.active { transform: scale(1.1); opacity: 0.7; }
+
+        /* 3. STICKY TOP NAVIGATION */
+        nav {
+            position: fixed; top: 0; width: 100%; padding: 25px 5%; z-index: 100; 
+            background: rgba(248, 246, 242, 0.75); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+            display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(0,0,0,0.03);
+        }
+        .brand { font-family: 'Bodoni Moda', serif; font-size: 1.2rem; letter-spacing: 0.5em; font-weight: 600; }
+        
+        .nav-right { display: flex; align-items: center; gap: 20px; }
+        .admin-nav-btn {
+            background: none; border: 1px solid rgba(29,29,31,0.15); padding: 8px 18px; border-radius: 20px;
+            font-family: 'Inter', sans-serif; font-size: 0.75rem; font-weight: 500; letter-spacing: 0.1em;
+            text-transform: uppercase; cursor: pointer; transition: 0.3s; color: var(--ink);
+        }
+        .admin-nav-btn:hover { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+
+        /* 4. STORY CONTENT SECTIONS */
+        section { min-height: 100vh; display: flex; align-items: center; padding: 80px 10%; position: relative; z-index: 2; }
+        .content { max-width: 560px; will-change: transform, opacity; position: relative; }
+        h1 { font-family: 'Bodoni Moda', serif; font-size: clamp(2.2rem, 6vw, 4.5rem); line-height: 1.1; margin-bottom: 20px; }
+        p { font-size: 1.1rem; line-height: 1.8; opacity: 0.7; font-weight: 300; }
+        
+        /* Inline CMS Adjustments */
+        .cms-edit-indicator {
+            position: absolute; top: -30px; left: 0; background: var(--accent); color: var(--white);
+            font-size: 0.65rem; padding: 2px 8px; border-radius: 4px; text-transform: uppercase;
+            font-weight: 600; letter-spacing: 0.05em; display: none; pointer-events: none;
+        }
+        .admin-mode .cms-edit-indicator { display: block; }
+        .admin-mode [contenteditable="true"] {
+            outline: 1px dashed var(--accent); padding: 4px; background: rgba(200, 169, 106, 0.05); border-radius: 6px;
+        }
+
+        /* 5. RETAIL COLLECTION CATALOG SHOWCASE */
+        .gallery-container { position: relative; z-index: 10; background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); padding: 120px 8%; border-top: 1px solid rgba(0,0,0,0.05); }
+        .gallery-title { text-align: center; font-family: 'Bodoni Moda', serif; font-size: clamp(2rem, 5vw, 3.5rem); margin-bottom: 20px; }
+        
+        .admin-actions-bar { display: flex; justify-content: center; margin-bottom: 50px; display: none; }
+        .admin-mode .admin-actions-bar { display: flex; }
+        
+        .gallery-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 40px; max-width: 1400px; margin: 0 auto; }
+
+        .product-card {
+            position: relative; background: var(--white); border-radius: 30px; padding: 25px; cursor: pointer;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.04); transition: 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .product-card:hover { transform: translateY(-8px); box-shadow: 0 20px 60px rgba(0,0,0,0.08); }
+        .product-card img { width: 100%; height: 360px; object-fit: cover; border-radius: 20px; margin-bottom: 20px; background: #eee; }
+        .product-card h3 { font-family: 'Bodoni Moda', serif; font-size: 1.4rem; margin-bottom: 10px; color: var(--ink); }
+        .product-price { color: var(--accent); font-weight: 600; font-size: 1.1rem; }
+        
+        .delete-prod-btn {
+            position: absolute; top: 15px; right: 15px; background: var(--error); color: white;
+            border: none; width: 32px; height: 32px; border-radius: 50%; font-size: 1rem; cursor: pointer;
+            display: none; align-items: center; justify-content: center; z-index: 20; box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        .admin-mode .delete-prod-btn { display: flex; }
+
+        /* 6. IMMERSIVE DYNAMIC PRODUCT VIEWPORT PANEL */
+        #product-overlay {
+            position: fixed; 
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--bg); 
+            z-index: 2000;
+            transform: translateY(100%); 
+            transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+            padding: 120px 8% 80px;
+            
+            /* HARDWARE-ACCELERATED NATIVE OVERFLOW LAYER CONFIGURATION */
+            overflow-y: auto !important;
+            overflow-x: hidden !important;
+            -webkit-overflow-scrolling: touch !important;
+        }
+        #product-overlay.active { transform: translateY(0); }
+        .close-overlay { position: fixed; top: 35px; right: 5%; font-size: 2rem; cursor: pointer; background: none; border: none; z-index: 2100; opacity: 0.5; transition: 0.3s; color: var(--ink); }
+        .close-overlay:hover { opacity: 1; color: var(--accent); }
+
+        .overlay-grid { display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 80px; max-width: 1200px; margin: 0 auto; padding-bottom: 80px; }
+        .overlay-left img { width: 100%; height: auto; max-height: 75vh; object-fit: cover; border-radius: 24px; position: sticky; top: 40px; box-shadow: 0 30px 70px rgba(0,0,0,0.1); background: #eee; }
+        
+        .detail-info { position: relative; }
+        .detail-info h2 { font-family: 'Bodoni Moda', serif; font-size: clamp(2rem, 4vw, 3rem); margin-bottom: 10px; }
+        .detail-price { font-size: 1.6rem; color: var(--accent); font-weight: 600; margin-bottom: 30px; }
+        .detail-desc { font-size: 1.05rem; line-height: 1.8; opacity: 0.7; margin-bottom: 40px; }
+
+        /* DROPDOWN ACCORDIONS FOR MAXIMUM LAPTOP/PHONE COMPATIBILITY */
+        .accordions { border-top: 1px solid rgba(0,0,0,0.1); margin-top: 30px; }
+        .acc-item { border-bottom: 1px solid rgba(0,0,0,0.1); overflow: hidden; }
+        .acc-trigger { 
+            width: 100%; padding: 22px 0; background: none; border: none; 
+            display: flex; justify-content: space-between; align-items: center; 
+            font-family: 'Inter'; font-weight: 600; text-transform: uppercase; 
+            letter-spacing: 0.1em; cursor: pointer; color: var(--ink); 
+            outline: none;
+        }
+        .acc-panel { 
+            max-height: 0; 
+            overflow: hidden; 
+            transition: max-height 0.4s cubic-bezier(0.16, 1, 0.3, 1); 
+            color: #555; 
+            font-size: 0.95rem; 
+            line-height: 1.7; 
+        }
+        .acc-content { padding: 5px 0 25px 0; } 
+        .acc-panel p { font-size: 0.95rem; margin-bottom: 8px; line-height: 1.7; }
+
+        /* BUTTON CONTEXT ENGINES */
+        .btn-group { display: flex; gap: 15px; margin-top: 40px; flex-wrap: wrap; padding-bottom: 40px; }
+        .order-btn { flex: 1; min-width: 160px; padding: 18px; text-align: center; text-decoration: none; border-radius: 40px; font-size: 0.85rem; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; transition: 0.3s; }
+        .whatsapp { background: var(--ink); color: #fff; }
+        .whatsapp:hover { background: var(--accent); }
+        .insta { border: 1px solid var(--ink); color: var(--ink); }
+        .insta:hover { background: rgba(0,0,0,0.03); }
+
+        /* ADMIN MANAGEMENT POP-UPS */
+        .admin-modal-overlay {
+            position: fixed; inset: 0; background: rgba(29, 29, 31, 0.4); backdrop-filter: blur(8px);
+            z-index: 5000; display: none; align-items: center; justify-content: center; opacity: 0; transition: 0.4s;
+        }
+        .admin-modal-overlay.active { display: flex; opacity: 1; }
+        .admin-modal-card {
+            background: var(--bg); border: 1px solid rgba(0,0,0,0.05); width: 90%; max-width: 460px;
+            padding: 40px; border-radius: 24px; box-shadow: 0 20px 50px rgba(0,0,0,0.15); position: relative;
+        }
+        .admin-modal-card h2 { font-family: 'Bodoni Moda', serif; margin-bottom: 25px; font-size: 1.8rem; letter-spacing: 0.05em; }
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 8px; font-weight: 600; opacity: 0.8; }
+        .form-group input, .form-group textarea {
+            width: 100%; padding: 14px; border-radius: 12px; border: 1px solid rgba(29,29,31,0.15); background: var(--white);
+            font-family: 'Inter', sans-serif; font-size: 0.95rem; outline: none; transition: 0.3s; color: var(--ink);
+        }
+        .form-group input:focus, .form-group textarea:focus { border-color: var(--accent); }
+        .form-submit-btn {
+            width: 100%; padding: 16px; background: var(--ink); color: var(--white); border: none;
+            border-radius: 30px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; font-size: 0.85rem;
+            cursor: pointer; transition: 0.3s; margin-top: 10px;
+        }
+        .form-submit-btn:hover { background: var(--accent); }
+        .error-txt { color: var(--error); font-size: 0.8rem; margin-top: 8px; display: none; }
+
+        footer { text-align: center; padding: 80px 20px; opacity: 0.4; font-size: 0.75rem; letter-spacing: 0.3em; position: relative; z-index: 2; }
+
+        /* DEVICE WIDTH PROTECTION PRESETS */
+        @media (max-width: 900px) {
+            .overlay-grid { grid-template-columns: 1fr; gap: 40px; } 
+            .overlay-left img { position: relative; top: 0; max-height: 50vh; }    
+            section { padding: 80px 5%; }
+            .gallery-container { padding: 80px 5%; }
+            .close-overlay { top: 25px; }
+            #product-overlay { padding-top: 90px; }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>YUGEN</h1>
-        <p>The code is alive. Ready for custom design assets.</p>
+
+    <nav>
+        <div class="brand">YUGEN</div>
+        <div class="nav-right">
+            <button id="authBtn" class="admin-nav-btn" onclick="toggleAuthView()">Admin Login</button>
+        </div>
+    </nav>
+
+    <div id="visual-reveal">
+        <div class="hero-blob active" id="blob1"></div>
+        <div class="hero-blob" id="blob2"></div>
+        <div class="hero-blob" id="blob3"></div>
     </div>
+
+    <div id="narrative-container"></div>
+
+    <main class="gallery-container">
+        <h2 class="gallery-title">The Collection</h2>
+        
+        <div class="admin-actions-bar">
+            <button class="admin-nav-btn" style="border-color: var(--accent); color: var(--accent)" onclick="openProductModal()">+ Add New Product</button>
+        </div>
+
+        <div class="gallery-grid" id="products-target-grid"></div>
+    </main>
+
+    <div id="product-overlay" aria-hidden="true" data-lenis-prevent>
+        <button class="close-overlay" onclick="closeProduct()">✕</button>
+        <div class="overlay-grid">
+            <div class="overlay-left">
+                <img id="detail-img" src="" alt="Active Dynamic Content Layout">
+            </div>
+            <div class="detail-info">
+                <h2 id="detail-title">Product Name</h2>
+                <p class="detail-price" id="detail-price">Price</p>
+                <p class="detail-desc" id="detail-desc">A masterpiece of additive manufacturing...</p>
+
+                <div class="accordions">
+                    <div class="acc-item">
+                        <button class="acc-trigger">Specifications <span>+</span></button>
+                        <div class="acc-panel">
+                            <div class="acc-content" id="detail-specs"></div>
+                        </div>
+                    </div>
+
+                    <div class="acc-item">
+                        <button class="acc-trigger">Collection Details <span>+</span></button>
+                        <div class="acc-panel">
+                            <div class="acc-content">
+                                <p>Part of the "YUGEN | Line to Object" series. Inspired by Japanese minimalism and the mathematics of Voronoi patterns. Each piece is uniquely layered during the 3D printing process.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="acc-item">
+                        <button class="acc-trigger">Shipping & Returns <span>+</span></button>
+                        <div class="acc-panel">
+                            <div class="acc-content">
+                                <p>• <strong>Shipping:</strong> Free shipping across India. Dispatched within 5-7 business days.</p>
+                                <p>• <strong>Packaging:</strong> 100% Recyclable Kraft paper packaging.</p>
+                                <p>• <strong>Returns:</strong> 7-day replacement window for manufacturing defects.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="btn-group">
+                    <a id="wa-link" href="#" target="_blank" class="order-btn whatsapp">WhatsApp Order</a>
+                    <a href="https://www.instagram.com/yugen_unofficial/" target="_blank" class="order-btn insta">Instagram DM</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="loginGate" class="admin-modal-overlay" onclick="closeModalOnOuterClick(event, 'loginGate')">
+        <div class="admin-modal-card">
+            <button class="close-overlay" style="top:20px; right:25px; font-size:1.5rem" onclick="toggleAuthView()">✕</button>
+            <h2>Admin Login</h2>
+            <div class="form-group">
+                <label>Username</label>
+                <input type="text" id="admUser" placeholder="admin">
+            </div>
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" id="admPass" placeholder="••••••••">
+            </div>
+            <button class="form-submit-btn" onclick="executeLogin()">Access Dashboard</button>
+            <div id="loginError" class="error-txt">Invalid admin credentials.</div>
+        </div>
+    </div>
+
+    <div id="productGate" class="admin-modal-overlay" onclick="closeModalOnOuterClick(event, 'productGate')">
+        <div class="admin-modal-card">
+            <button class="close-overlay" style="top:20px; right:25px; font-size:1.5rem" onclick="closeProductModal()">✕</button>
+            <h2>Add New Product</h2>
+            <div class="form-group">
+                <label>Product Name</label>
+                <input type="text" id="pName" placeholder="Yugen No.3 (Matte Black)">
+            </div>
+            <div class="form-group">
+                <label>Price</label>
+                <input type="text" id="pPrice" placeholder="₹18,500">
+            </div>
+            <div class="form-group">
+                <label>Image URL</label>
+                <input type="text" id="pImg" placeholder="https://images.unsplash.com/...">
+            </div>
+            <div class="form-group">
+                <label>Description</label>
+                <textarea id="pDesc" rows="2" placeholder="Brief design overview..."></textarea>
+            </div>
+            <div class="form-group">
+                <label>Specifications (One per line)</label>
+                <textarea id="pSpecs" rows="3" placeholder="Dimensions: 40cm x 25cm&#10;Material: Sustainable PLA"></textarea>
+            </div>
+            <button class="form-submit-btn" onclick="executeAddProduct()">Commit to Catalog</button>
+        </div>
+    </div>
+
+    <footer>MADE TO INSPIRE | © 2026 YUGEN</footer>
+
+    <script>
+        const baseNarrative = [
+            { id: "sec1", title: "A Passion for Designing", text: "At Yugen, we translate complex geometry into physical poetry. Every curve is a conversation between digital precision and the designer's soul." },
+            { id: "sec2", title: "The World of 3D Printing", text: "Harnessing additive manufacturing to create objects once thought impossible. Layer by layer, we define the future of lighting." },
+            { id: "sec3", title: "Quiet Luxury", text: "Inspired by raw textures—Kraft, Cream, and Matte Black. Sophisticated forms that demand attention through silence." }
+        ];
+
+        const baseProducts = [
+            { id: "p1", name: "Yugen No.1 (Cream)", price: "₹14,999", img: "https://images.unsplash.com/photo-1507473885765-e6ed057f782c?auto=format&fit=crop&w=800&q=80", desc: "A masterpiece of additive manufacturing, this piece graduates light through pure geometry. Printed meticulously over several hours to achieve our signature contemplative glow.", specs: ["Dimensions: 35cm Height x 20cm Width", "Material: Sustainable Bio-polymer (PLA)", "Light Source: E27 LED Warm White (included)", "Cable: 2m Braided Fabric Cord with toggle switch"] },
+            { id: "p2", name: "Yugen No.2 (Obsidian)", price: "₹16,499", img: "https://images.unsplash.com/photo-1565814329452-e1efa11c5b89?auto=format&fit=crop&w=800&q=80", desc: "A masterpiece of additive manufacturing, this piece graduates light through pure geometry. Printed meticulously over several hours to achieve our signature contemplative glow.", specs: ["Dimensions: 35cm Height x 20cm Width", "Material: Sustainable Bio-polymer (PLA)", "Light Source: E27 LED Warm White (included)", "Cable: 2m Braided Fabric Cord with toggle switch"] }
+        ];
+
+        let state = {
+            isAdmin: false,
+            narratives: JSON.parse(localStorage.getItem('yugen_narratives')) || baseNarrative,
+            products: JSON.parse(localStorage.getItem('yugen_products')) || baseProducts
+        };
+
+        let lenis;
+
+        document.addEventListener("DOMContentLoaded", () => {
+            renderCoreContent();
+
+            lenis = new Lenis({
+                duration: 1.2,
+                easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+                gestureOrientation: "vertical",
+                smoothWheel: true
+            });
+
+            lenis.on('scroll', ScrollTrigger.update);
+            gsap.ticker.add((time) => { lenis.raf(time * 1000); });
+            gsap.ticker.lagSmoothing(0);
+
+            initializeScrollAnimations();
+        });
+
+        function renderCoreContent() {
+            const narrativeWrapper = document.getElementById('narrative-container');
+            narrativeWrapper.innerHTML = state.narratives.map((item) => `
+                <section>
+                    <div class="content" data-id="${item.id}">
+                        <span class="cms-edit-indicator">Editable Field</span>
+                        <h1 contenteditable="${state.isAdmin}" onblur="saveTextEdit('${item.id}', 'title', this.innerText)">${item.title}</h1>
+                        <p contenteditable="${state.isAdmin}" onblur="saveTextEdit('${item.id}', 'text', this.innerText)">${item.text}</p>
+                    </div>
+                </section>
+            `).join('');
+
+            const gridWrapper = document.getElementById('products-target-grid');
+            gridWrapper.innerHTML = state.products.map(p => `
+                <div class="product-card" onclick="openProduct('${p.id}')">
+                    <button class="delete-prod-btn" onclick="executeDeleteProduct(event, '${p.id}')">✕</button>
+                    <img src="${p.img}" alt="${p.name} Preview">
+                    <h3>${p.name}</h3>
+                    <span class="product-price">${p.price}</span>
+                </div>
+            `).join('');
+        }
+
+        function initializeScrollAnimations() {
+            ScrollTrigger.getAll().forEach(t => t.kill());
+            
+            const contents = gsap.utils.toArray(".content");
+            const blobs = gsap.utils.toArray(".hero-blob");
+
+            gsap.set(contents, { opacity: 0, y: 40 });
+
+            contents.forEach((content, i) => {
+                gsap.to(content, {
+                    opacity: 1, y: 0,
+                    scrollTrigger: { 
+                        trigger: content, 
+                        start: "top 85%", 
+                        end: "top 45%", 
+                        scrub: true 
+                    }
+                });
+
+                if(blobs[i]) {
+                    ScrollTrigger.create({
+                        trigger: content, 
+                        start: "top center", 
+                        end: "bottom center",
+                        onEnter: () => switchBlob(i), 
+                        onEnterBack: () => switchBlob(i)
+                    });
+                }
+            });
+
+            gsap.to("#visual-reveal", {
+                opacity: 0,
+                scrollTrigger: { 
+                    trigger: ".gallery-container", 
+                    start: "top bottom", 
+                    end: "top 30%", 
+                    scrub: true 
+                }
+            });
+
+            ScrollTrigger.refresh();
+        }
+
+        function switchBlob(index) {
+            const blobs = gsap.utils.toArray(".hero-blob");
+            blobs.forEach((b, i) => {
+                if(i === index) b.classList.add('active');
+                else b.classList.remove('active');
+            });
+        }
+
+        function toggleAuthView() {
+            if (state.isAdmin) {
+                state.isAdmin = false;
+                document.body.classList.remove('admin-mode');
+                document.getElementById('authBtn').innerText = "Admin Login";
+                renderCoreContent();
+                initializeScrollAnimations();
+            } else {
+                document.getElementById('loginGate').classList.add('active');
+            }
+        }
+
+        function executeLogin() {
+            const u = document.getElementById('admUser').value;
+            const p = document.getElementById('admPass').value;
+            
+            if (u === 'admin' && p === 'yugen2026') {
+                state.isAdmin = true;
+                document.getElementById('loginGate').classList.remove('active');
+                document.body.classList.add('admin-mode');
+                document.getElementById('authBtn').innerText = "Logout Admin";
+                
+                document.getElementById('admUser').value = '';
+                document.getElementById('admPass').value = '';
+                document.getElementById('loginError').style.display = 'none';
+                
+                renderCoreContent();
+                initializeScrollAnimations();
+            } else {
+                document.getElementById('loginError').style.display = 'block';
+            }
+        }
+
+        function closeModalOnOuterClick(e, modalId) {
+            if (e.target.id === modalId) {
+                if (modalId === 'loginGate') toggleAuthView();
+                if (modalId === 'productGate') closeProductModal();
+            }
+        }
+
+        function saveTextEdit(id, field, value) {
+            state.narratives = state.narratives.map(item => {
+                if (item.id === id) { item[field] = value; }
+                return item;
+            });
+            localStorage.setItem('yugen_narratives', JSON.stringify(state.narratives));
+        }
+
+        function openProductModal() { document.getElementById('productGate').classList.add('active'); }
+        function closeProductModal() { document.getElementById('productGate').classList.remove('active'); }
+
+        function executeAddProduct() {
+            const name = document.getElementById('pName').value || "Unnamed Object";
+            const price = document.getElementById('pPrice').value || "Price on Request";
+            const img = document.getElementById('pImg').value || "https://images.unsplash.com/photo-1507473885765-e6ed057f782c?auto=format&fit=crop&w=800&q=80";
+            const desc = document.getElementById('pDesc').value || "Product details coming soon.";
+            const specsRaw = document.getElementById('pSpecs').value || "";
+            
+            const specs = specsRaw.split('\n').filter(line => line.trim() !== "").map(line => line.startsWith('•') ? line : `• ${line}`);
+
+            const newProduct = {
+                id: 'prod_' + Date.now(),
+                name, price, img, desc, specs
+            };
+
+            state.products.push(newProduct);
+            localStorage.setItem('yugen_products', JSON.stringify(state.products));
+            
+            ['pName', 'pPrice', 'pImg', 'pDesc', 'pSpecs'].forEach(id => document.getElementById(id).value = '');
+            
+            closeProductModal();
+            renderCoreContent();
+            ScrollTrigger.refresh();
+        }
+
+        function executeDeleteProduct(e, id) {
+            e.stopPropagation(); 
+            if(confirm("Are you sure you want to remove this object from the collection?")) {
+                state.products = state.products.filter(p => p.id !== id);
+                localStorage.setItem('yugen_products', JSON.stringify(state.products));
+                renderCoreContent();
+                ScrollTrigger.refresh();
+            }
+        }
+
+        function openProduct(id) {
+            const p = state.products.find(prod => prod.id === id);
+            if (!p) return;
+
+            document.getElementById('detail-title').innerText = p.name;
+            document.getElementById('detail-price').innerText = p.price;
+            document.getElementById('detail-img').src = p.img;
+            document.getElementById('detail-desc').innerText = p.desc;
+            
+            const specsContainer = document.getElementById('detail-specs');
+            specsContainer.innerHTML = p.specs.map(spec => `<p>${spec.startsWith('•') ? '' : '• '}<strong>${spec.split(':')[0]}:</strong>${spec.split(':')[1] || ''}</p>`).join('');
+            
+            const msg = encodeURIComponent(`Hi! I'm interested in ordering the ${p.name}. Could you please guide me with the steps?`);
+            document.getElementById('wa-link').href = `https://wa.me/919447761741?text=${msg}`;
+            
+            const overlay = document.getElementById('product-overlay');
+            overlay.classList.add('active');
+            overlay.setAttribute('aria-hidden', 'false');
+            
+            // Explicitly pause Lenis instance tracking for background document sections
+            if (lenis) lenis.stop();
+        }
+
+        function closeProduct() {
+            const overlay = document.getElementById('product-overlay');
+            overlay.classList.remove('active');
+            overlay.setAttribute('aria-hidden', 'true');
+            
+            // Safely re-engage Lenis smooth layout scrolling updates
+            if (lenis) lenis.start();
+            
+            document.querySelectorAll('.acc-panel').forEach(p => {
+                p.style.maxHeight = null;
+                p.previousElementSibling.querySelector('span').innerText = '+';
+            });
+        }
+
+        document.body.addEventListener('click', function(e) {
+            const trigger = e.target.closest('.acc-trigger');
+            if (!trigger) return;
+            
+            const panel = trigger.nextElementSibling;
+            const icon = trigger.querySelector('span');
+            
+            document.querySelectorAll('.acc-panel').forEach(p => {
+                if (p !== panel) {
+                    p.style.maxHeight = null;
+                    p.previousElementSibling.querySelector('span').innerText = '+';
+                }
+            });
+
+            if (panel.style.maxHeight) {
+                panel.style.maxHeight = null;
+                icon.innerText = '+';
+            } else {
+                panel.style.maxHeight = panel.scrollHeight + "px";
+                icon.innerText = '−';
+            }
+        });
+    </script>
 </body>
 </html>
