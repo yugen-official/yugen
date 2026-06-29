@@ -111,7 +111,6 @@
             transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
             padding: 120px 8% 80px;
             
-            /* HARDWARE-ACCELERATED NATIVE OVERFLOW LAYER CONFIGURATION */
             overflow-y: auto !important;
             overflow-x: hidden !important;
             -webkit-overflow-scrolling: touch !important;
@@ -128,7 +127,7 @@
         .detail-price { font-size: 1.6rem; color: var(--accent); font-weight: 600; margin-bottom: 30px; }
         .detail-desc { font-size: 1.05rem; line-height: 1.8; opacity: 0.7; margin-bottom: 40px; }
 
-        /* DROPDOWN ACCORDIONS FOR MAXIMUM LAPTOP/PHONE COMPATIBILITY */
+        /* DROPDOWN ACCORDIONS */
         .accordions { border-top: 1px solid rgba(0,0,0,0.1); margin-top: 30px; }
         .acc-item { border-bottom: 1px solid rgba(0,0,0,0.1); overflow: hidden; }
         .acc-trigger { 
@@ -273,7 +272,7 @@
 
     <div id="loginGate" class="admin-modal-overlay" onclick="closeModalOnOuterClick(event, 'loginGate')">
         <div class="admin-modal-card">
-            <button class="close-overlay" style="top:20px; right:25px; font-size:1.5rem" onclick="toggleAuthView()">✕</button>
+            <button class="close-overlay" style="top:20px; right:25px; font-size:1.5rem" onclick="closeLoginModal()">✕</button>
             <h2>Login</h2>
             <div class="form-group">
                 <label>Username</label>
@@ -429,6 +428,7 @@
             });
         }
 
+        // --- ADMINISTRATIVE DASHBOARD CONTROLLERS ---
         function toggleAuthView() {
             if (state.isAdmin) {
                 state.isAdmin = false;
@@ -439,6 +439,11 @@
             } else {
                 document.getElementById('loginGate').classList.add('active');
             }
+        }
+
+        /* FIXED FUNCTION: EXPLICITLY RELEASES THE AUTH VIEW WINDOW LAYER CLASS */
+        function closeLoginModal() {
+            document.getElementById('loginGate').classList.remove('active');
         }
 
         function executeLogin() {
@@ -464,11 +469,12 @@
 
         function closeModalOnOuterClick(e, modalId) {
             if (e.target.id === modalId) {
-                if (modalId === 'loginGate') toggleAuthView();
+                if (modalId === 'loginGate') closeLoginModal();
                 if (modalId === 'productGate') closeProductModal();
             }
         }
 
+        // --- CMS CORE SAVE PIPELINE ---
         function saveTextEdit(id, field, value) {
             state.narratives = state.narratives.map(item => {
                 if (item.id === id) { item[field] = value; }
@@ -477,6 +483,7 @@
             localStorage.setItem('yugen_narratives', JSON.stringify(state.narratives));
         }
 
+        // --- CATALOG ADDITIONS / REMOVALS ---
         function openProductModal() { document.getElementById('productGate').classList.add('active'); }
         function closeProductModal() { document.getElementById('productGate').classList.remove('active'); }
 
@@ -533,7 +540,6 @@
             overlay.classList.add('active');
             overlay.setAttribute('aria-hidden', 'false');
             
-            // Explicitly pause Lenis instance tracking for background document sections
             if (lenis) lenis.stop();
         }
 
@@ -542,7 +548,6 @@
             overlay.classList.remove('active');
             overlay.setAttribute('aria-hidden', 'true');
             
-            // Safely re-engage Lenis smooth layout scrolling updates
             if (lenis) lenis.start();
             
             document.querySelectorAll('.acc-panel').forEach(p => {
